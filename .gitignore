@@ -1,0 +1,12 @@
+~$*
+*.docx
+*.xlsx
+*.wps
+*.m4a
+*.mp4
+*.ai
+*.psd
+.claude/
+*.tmp
+Thumbs.db
+desktop.ini
