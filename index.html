@@ -388,7 +388,7 @@ button,a,label,.c-card,.clickable{-webkit-tap-highlight-color:transparent}
 .round-header{
   flex-shrink:0;
   display:flex;flex-direction:column;align-items:center;
-  padding:70px 24px 16px;
+  padding:50px 24px 8px;
   text-align:center;width:100%;max-width:500px;
 }
 .round-label{
@@ -405,9 +405,9 @@ button,a,label,.c-card,.clickable{-webkit-tap-highlight-color:transparent}
 
 .round-q{
   font-size:1.18rem;font-weight:400;letter-spacing:.06em;
-  color:#5C3D1E;line-height:1.75;margin-bottom:6px;
+  color:#5C3D1E;line-height:1.75;margin-bottom:4px;
   position:relative;
-  padding:18px 24px;
+  padding:12px 24px;
 }
 /* 問題背後的聚光暈染 */
 .round-q::before{
@@ -434,7 +434,7 @@ button,a,label,.c-card,.clickable{-webkit-tap-highlight-color:transparent}
 }
 .round-hint{
   font-size:.8rem;letter-spacing:.14em;
-  color:rgba(42,28,14,.55);margin-bottom:4px;
+  color:rgba(42,28,14,.55);margin-bottom:0;
 }
 
 /* Round page entrance animations */
@@ -462,9 +462,11 @@ button,a,label,.c-card,.clickable{-webkit-tap-highlight-color:transparent}
 .round-page.active .round-sel-count{
   animation:roundFadeUp .5s 1.8s both;
 }
-/* 色票格延遲出現，讓問題先吸引注意力 */
-.round-page.active .color-grid{
-  animation:roundGridIn .8s .9s both;
+/* 色票：文字出完後，逐排從上往下顯現 */
+.round-page .c-card{opacity:0;transform:translateY(14px);}
+.round-page.active .c-card{
+  animation:cardRowIn .35s ease-out forwards;
+  animation-delay:var(--d,1.8s);
 }
 
 @keyframes roundLabelIn{
@@ -490,8 +492,8 @@ button,a,label,.c-card,.clickable{-webkit-tap-highlight-color:transparent}
   from{opacity:0;transform:translateY(12px)}
   to{opacity:1;transform:translateY(0)}
 }
-@keyframes roundGridIn{
-  from{opacity:0;transform:translateY(24px)}
+@keyframes cardRowIn{
+  from{opacity:0;transform:translateY(14px)}
   to{opacity:1;transform:translateY(0)}
 }
 .round-sel-count{
@@ -2210,6 +2212,7 @@ function goToRevealFromSnap(){
 function buildGrid(r){
   const grid = document.getElementById('grid'+r);
   grid.innerHTML = '';
+  let idx=0;
   BRAND_COLORS.forEach(c=>{
     const card = document.createElement('div');
     card.className = 'c-card';
@@ -2234,7 +2237,9 @@ function buildGrid(r){
       if(dx<12&&dy<12) toggleColor(r,c.id);
     });
     card.style.touchAction='manipulation';
+    card.style.setProperty('--d',(1800 + idx * 10)+'ms');
     grid.appendChild(card);
+    idx++;
   });
 }
 
@@ -2366,6 +2371,43 @@ function getDominantTone(ids){
   });
   return Object.entries(tones).sort((a,b)=>b[1]-a[1])[0]?.[0]||'neutral';
 }
+function getRoundProfile(ids){
+  let sinSum=0,cosSum=0,chromaCount=0,lightSum=0,count=0;
+  ids.forEach(id=>{
+    const c=BRAND_COLORS.find(x=>x.id===id);
+    if(!c) return;
+    const hex=c.hex;
+    const r=parseInt(hex.slice(1,3),16)/255;
+    const g=parseInt(hex.slice(3,5),16)/255;
+    const b=parseInt(hex.slice(5,7),16)/255;
+    const max=Math.max(r,g,b),min=Math.min(r,g,b);
+    lightSum+=(max+min)/2*100; count++;
+    const d=max-min;
+    if(d>=0.08){
+      let h;
+      if(max===r) h=((g-b)/d+6)%6;
+      else if(max===g) h=(b-r)/d+2;
+      else h=(r-g)/d+4;
+      h*=60;
+      const rad=h*Math.PI/180;
+      sinSum+=Math.sin(rad); cosSum+=Math.cos(rad); chromaCount++;
+    }
+  });
+  if(count===0) return {hue:-1,light:50};
+  let avgHue=-1;
+  if(chromaCount>0){
+    avgHue=Math.atan2(sinSum/chromaCount,cosSum/chromaCount)*180/Math.PI;
+    if(avgHue<0) avgHue+=360;
+  }
+  return {hue:avgHue,light:lightSum/count};
+}
+function roundDist(a,b){
+  if(a.hue<0||b.hue<0) return 80;
+  let hd=Math.abs(a.hue-b.hue);
+  hd=Math.min(hd,360-hd);
+  const ld=Math.abs(a.light-b.light);
+  return hd+ld*0.6;
+}
 function generateDiagnosis(sel){
   const t1=getDominantTone(sel.r1);
   const t2=getDominantTone(sel.r2);
@@ -2418,14 +2460,22 @@ function generateDiagnosis(sel){
   };
 
   const p1=personality[t1]||personality.neutral;
-  const allSame=t1===t2&&t2===t3;
-  const r1r2=t1===t2, r2r3=t2===t3, r1r3=t1===t3;
+
+  const pr1=getRoundProfile(sel.r1);
+  const pr2=getRoundProfile(sel.r2);
+  const pr3=getRoundProfile(sel.r3);
+  const d12=roundDist(pr1,pr2);
+  const d23=roundDist(pr2,pr3);
+  const d13=roundDist(pr1,pr3);
+  const TH=35;
+  const sim12=d12<TH, sim23=d23<TH, sim13=d13<TH;
+  const simCount=[sim12,sim23,sim13].filter(Boolean).length;
 
   let gapText;
-  if(allSame) gapText=gap.same;
-  else if(r1r2&&!r2r3) gapText=gap.r1r2_diff3;
-  else if(!r1r2&&r1r3) gapText=gap.r1r3_diff2;
-  else if(!r1r2&&r2r3) gapText=gap.r2r3_diff1;
+  if(simCount>=2) gapText=gap.same;
+  else if(sim12) gapText=gap.r1r2_diff3;
+  else if(sim13) gapText=gap.r1r3_diff2;
+  else if(sim23) gapText=gap.r2r3_diff1;
   else gapText=gap.allDiff;
 
   const hook='色彩只是入口，把氣質變成「看得見」的視覺語言——這件事，光靠色票做不到。';
