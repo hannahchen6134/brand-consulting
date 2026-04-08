@@ -2451,12 +2451,33 @@ function generateDiagnosis(sel){
     }
   };
 
-  const gap={
-    same:'你從內到外是一致的，這份清晰很珍貴——但一致有時也意味著舒適圈。',
-    r1r2_diff3:'你和品牌現狀合拍，但心裡想走的方向不同。這個拉力，可能是品牌進化的起點。',
-    r1r3_diff2:'你知道自己要什麼，但品牌還沒跟上。方向清楚，缺的是那臨門一腳的視覺翻新。',
-    r2r3_diff1:'品牌方向和理想一致，但和真實的你有段距離。這是策略性選擇，還是值得重新思考的缺口？',
-    allDiff:'三組色彩走向完全不同——你正站在轉折點上，哪一個才是真正的你？'
+  // 每輪色調的具體描述
+  const r1Read={
+    warm:'你的內在帶著強烈的能量和感染力',
+    gold:'你的內在有著沉穩而精煉的品味',
+    green:'你的內在帶著自然而踏實的生長力',
+    teal:'你的內在有著清透而深刻的洞察',
+    blue:'你的內在散發沉靜而值得信賴的力量',
+    purple:'你的內在有著獨特而大膽的創造力',
+    neutral:'你的內在帶著從容而安靜的自信'
+  };
+  const r2Read={
+    warm:'品牌目前帶著溫暖的親和力',
+    gold:'品牌目前散發精緻內斂的質感',
+    green:'品牌目前呈現自然樸實的面貌',
+    teal:'品牌目前走清透專業的路線',
+    blue:'品牌目前傳遞沉穩可信的氣質',
+    purple:'品牌目前有著鮮明的個人風格',
+    neutral:'品牌目前以素雅克制的姿態呈現'
+  };
+  const r3Read={
+    warm:'你想走向的方向帶著更大膽的暖意和生命力',
+    gold:'你想走向的方向是更精煉、更有底蘊的質感',
+    green:'你想走向的方向是更貼近自然和真實的節奏',
+    teal:'你想走向的方向是更乾淨、有穿透力的專業感',
+    blue:'你想走向的方向是更深沉、更值得信賴的存在',
+    purple:'你想走向的方向是更勇敢、更無法複製的獨特',
+    neutral:'你想走向的方向是更極簡、更有留白餘韻的風格'
   };
 
   const p1=personality[t1]||personality.neutral;
@@ -2472,11 +2493,16 @@ function generateDiagnosis(sel){
   const simCount=[sim12,sim23,sim13].filter(Boolean).length;
 
   let gapText;
-  if(simCount>=2) gapText=gap.same;
-  else if(sim12) gapText=gap.r1r2_diff3;
-  else if(sim13) gapText=gap.r1r3_diff2;
-  else if(sim23) gapText=gap.r2r3_diff1;
-  else gapText=gap.allDiff;
+  if(simCount>=2){
+    gapText=r1Read[t1]+'，'+r2Read[t2]+'，'+r3Read[t3]+'。三組色彩走在同一條路上，你的品牌方向很清晰，接下來是把這份一致做得更到位。';
+  }else{
+    let transition;
+    if(sim13) transition='你的內在和理想方向是一致的，品牌正準備迎來一次視覺蛻變。';
+    else if(sim12) transition='你和品牌現狀是合拍的，而你心裡已經看到一個更大的可能——這個渴望，就是品牌進化的起點。';
+    else if(sim23) transition='品牌正朝著自己的方向前進，而你的內在能量是讓它更有層次的關鍵。';
+    else transition='三組色彩各自帶著不同的故事——這種豐富的張力，正是打造獨特品牌最好的素材。';
+    gapText=r1Read[t1]+'，'+r2Read[t2]+'——'+r3Read[t3]+'。'+transition;
+  }
 
   const hook='色彩只是入口，把氣質變成「看得見」的視覺語言——這件事，光靠色票做不到。';
 
